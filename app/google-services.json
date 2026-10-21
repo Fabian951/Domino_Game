@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "423565031620",
+    "project_id": "dominogame-b36d4",
+    "storage_bucket": "dominogame-b36d4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:423565031620:android:6ec1f9237e127166d2f191",
+        "android_client_info": {
+          "package_name": "com.example.domino_game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdKq79-aXHQ2w02NrjCugnwQwh-gA-tcI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
