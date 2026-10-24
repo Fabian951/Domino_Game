@@ -45,7 +45,8 @@ class MainActivity : ComponentActivity() {
                             AuthScreen(
                                 state = authState,
                                 onLogin = authViewModel::login,
-                                onRegister = authViewModel::register
+                                onRegister = authViewModel::register,
+                                onGoogleLogin = { token -> authViewModel.loginWithGoogle(token) } // <-- AGREGA ESTA LÍNEA AQUÍ
                             )
                         }
 

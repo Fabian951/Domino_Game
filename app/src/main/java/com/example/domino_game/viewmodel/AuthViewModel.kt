@@ -57,6 +57,19 @@ class AuthViewModel(
         }
     }
 
+    // --- NUEVA FUNCIÓN ADAPTADA A TU ARQUITECTURA DE ESTADOS ---
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState(loading = true)
+            try {
+                repo.loginWithGoogle(idToken)
+                _uiState.value = AuthUiState(loggedIn = true)
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState(error = e.message)
+            }
+        }
+    }
+
     fun logout() {
         repo.logout()
         _uiState.value = AuthUiState()

@@ -2,6 +2,7 @@ package com.example.domino_game.model
 
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
@@ -42,5 +43,32 @@ class AuthRepository(
         val uid = currentUserUid ?: return "Jugador"
         val doc = db.collection("users").document(uid).get().await()
         return doc.getString("name") ?: "Jugador"
+    }
+
+    // --- FUNCIÓN DE GOOGLE CORREGIDA E INTEGRADA ---
+    suspend fun loginWithGoogle(idToken: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+
+        // 1. Autenticar en Firebase usando la instancia de la clase
+        val result = auth.signInWithCredential(credential).await()
+        val uid = result.user?.uid ?: return
+
+        // 2. Verificar si el usuario ya existe en la base de datos
+        val userDoc = db.collection("users").document(uid).get().await()
+
+        // 3. Si es la primera vez que entra, creamos su perfil en Firestore
+        if (!userDoc.exists()) {
+            val name = result.user?.displayName ?: "Jugador de Google"
+            val email = result.user?.email ?: ""
+
+            db.collection("users").document(uid).set(
+                mapOf(
+                    "name" to name,
+                    "email" to email,
+                    "gamesPlayed" to 0,
+                    "gamesWon" to 0
+                )
+            ).await()
+        }
     }
 }
