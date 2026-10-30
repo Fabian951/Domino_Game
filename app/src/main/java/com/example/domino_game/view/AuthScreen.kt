@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.domino_game.viewmodel.AuthUiState
@@ -39,6 +40,9 @@ fun AuthScreen(
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // NUEVO ESTADO: Controla visualmente si se oculta o muestra el texto
+    var isPasswordVisible by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -155,12 +159,23 @@ fun AuthScreen(
 
         Spacer(Modifier.height(12.dp))
 
+        // MODIFICADO EXCLUSIVAMENTE: Añadido el cambio de visualización y el icono interactivo
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Contraseña") },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                val textoIcono = if (isPasswordVisible) "🙈" else "👁️"
+                Text(
+                    text = textoIcono,
+                    fontSize = 20.sp,
+                    modifier = Modifier
+                        .clickable { isPasswordVisible = !isPasswordVisible }
+                        .padding(end = 12.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(16.dp))
