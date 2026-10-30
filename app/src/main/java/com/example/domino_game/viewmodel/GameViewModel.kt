@@ -278,7 +278,7 @@ class GameViewModel(
         }
     }
 
-    // ---------- EJECUCIÓN COMBINADA PARA BOT (IA) ----------
+    // // ---------- EJECUCIÓN COMBINADA PARA BOT (IA) ----------
     private fun observeBotTurnCombined() {
         viewModelScope.launch {
             combine(room, players, pool) { r, p, _ -> Pair(r, p) }.collect { (currentRoom, activePlayers) ->
@@ -289,16 +289,17 @@ class GameViewModel(
                 val currentTurnUid = currentRoom.currentTurnUid
                 val isBot = currentTurnUid.startsWith("bot_") ||
                         activePlayers.firstOrNull { it.uid == currentTurnUid }?.isAi == true
-                        
+
                 val pendingPortalUid = currentRoom.pendingPortalUid
-                val isBotPortal = pendingPortalUid != null && (pendingPortalUid.startsWith("bot_") || 
+                val isBotPortal = pendingPortalUid != null && (pendingPortalUid.startsWith("bot_") ||
                         activePlayers.firstOrNull { it.uid == pendingPortalUid }?.isAi == true)
 
                 if (isBot || isBotPortal) {
                     val targetUid = pendingPortalUid ?: currentTurnUid
                     botJob?.cancel()
                     botJob = viewModelScope.launch {
-                        delay(1200)
+                        // OPTIMIZACIÓN: Reducimos el retardo artificial de 1200ms a 150ms para fluidez inmediata
+                        delay(150)
                         if (room.value?.currentTurnUid == currentTurnUid || room.value?.pendingPortalUid == pendingPortalUid) {
                             try {
                                 gameRepo.executeBotTurn(currentRoom.id, targetUid)
@@ -312,3 +313,4 @@ class GameViewModel(
         }
     }
 }
+
