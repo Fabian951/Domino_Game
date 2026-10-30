@@ -96,6 +96,27 @@ class AuthViewModel(
         }
     }
 
+    fun deleteUserAccount(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(loading = true)
+            try {
+                // Delegamos el borrado al repositorio usando corrutinas
+                repo.deleteUserAccountPermanently()
+
+                // Si todo sale bien, cerramos sesión localmente y disparamos el éxito
+                _uiState.value = AuthUiState(loggedIn = false)
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    loading = false,
+                    error = e.message ?: "Error al eliminar la cuenta"
+                )
+            }
+        }
+    }
+
+
+
     fun logout() {
         repo.logout()
         _uiState.value = AuthUiState()

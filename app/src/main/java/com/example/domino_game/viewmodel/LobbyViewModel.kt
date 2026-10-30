@@ -109,6 +109,23 @@ class LobbyViewModel(
         }
     }
 
+    fun deleteAccount(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(loading = true) }
+            try {
+                // Usamos authRepo en lugar de repo para que coincida con tu constructor
+                authRepo.deleteUserAccountPermanently()
+
+                _uiState.update { it.copy(loading = false) }
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(loading = false, error = e.message) }
+            }
+        }
+    }
+
+
+
     private fun launchAction(block: suspend () -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true) }

@@ -4,6 +4,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.tasks.await
@@ -66,7 +67,7 @@ class AuthRepository(
                 mapOf(
                     "name" to name,
                     "email" to email,
-                    "avatar" to "", // <--- Inicialmente vacío para que la app sepa que debe elegir uno
+                    "avatar" to "",
                     "gamesPlayed" to 0,
                     "gamesWon" to 0
                 )
@@ -74,17 +75,35 @@ class AuthRepository(
         }
     }
 
-    // CONECTADO A FIRESTORE: Actualiza el avatar permanentemente
     suspend fun updateUserEmoji(uid: String, emoji: String) {
         if (uid.isNotBlank()) {
             db.collection("users").document(uid).update("avatar", emoji).await()
         }
     }
 
-    // CONECTADO A FIRESTORE: Obtiene el avatar guardado de forma persistente
     suspend fun getUserEmoji(uid: String): String? {
         if (uid.isBlank()) return null
         val doc = db.collection("users").document(uid).get().await()
         return doc.getString("avatar")
+    }
+
+    // FUNCIÓN DE BORRADO OPTIMIZADA Y USANDO LAS INSTANCIAS DE TU CLASE
+    suspend fun deleteUserAccountPermanently() {
+        val user = auth.currentUser ?: throw Exception("No hay ningún usuario con sesión activa")
+        val uid = user.uid
+
+        try {
+            // 1. Eliminamos el documento del usuario en Firestore utilizando la instancia 'db'
+            db.collection("users").document(uid).delete().await()
+
+            // 2. Eliminamos el usuario de Firebase Authentication utilizando la instancia 'auth'
+            user.delete().await()
+
+        } catch (e: FirebaseAuthRecentLoginRequiredException) {
+            // Capturamos de forma precisa la excepción de seguridad de Firebase y la traducimos elegantemente
+            throw Exception("Por seguridad, al ser una acción crítica, cierra sesión e ingresa nuevamente para poder eliminar tu cuenta.")
+        } catch (e: Exception) {
+            throw Exception("No se pudo eliminar la cuenta por completo: ${e.localizedMessage}")
+        }
     }
 }

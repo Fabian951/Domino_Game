@@ -27,10 +27,59 @@ fun LobbyScreen(
     val room by viewModel.room.collectAsStateWithLifecycle()
     val players by viewModel.players.collectAsStateWithLifecycle()
 
+    // Variable de estado para controlar la visibilidad del diálogo de confirmación
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     // Cuando el host inicia la partida, TODOS navegan al juego
     LaunchedEffect(room?.status) {
         val id = roomId
         if (room?.status == "PLAYING" && id != null) onGameStart(id)
+    }
+
+    // ---------- Diálogo de Alerta Estilizado en Tema Oscuro ----------
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            containerColor = Color.Black, // Fondo del cuadro completamente negro
+            title = {
+                Text(
+                    text = "⚠️ Eliminar Cuenta",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White // Letras del título blancas
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Estás completamente seguro de que deseas borrar tu usuario? Esta acción es permanente, se desvinculará de la base de datos y perderás todo tu progreso.",
+                    color = Color.White // Letras de la descripción blancas
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        // Ejecuta la función de borrado mediante el viewModel y redirige al salir con éxito
+                        viewModel.deleteAccount(
+                            onSuccess = { onLogout() }
+                        )
+                    }
+                ) {
+                    Text(
+                        text = "Eliminar definitivamente",
+                        color = Color(0xFFD32F2F), // Mantiene el rojo para denotar una acción destructiva
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(
+                        text = "Cancelar",
+                        color = Color.LightGray // Tono gris claro para el botón neutral
+                    )
+                }
+            }
+        )
     }
 
     Column(
@@ -110,6 +159,15 @@ fun LobbyScreen(
 
             Spacer(Modifier.height(16.dp))
             TextButton(onClick = onLogout) { Text("Cerrar sesión") }
+
+            // ---------- NUEVO BOTÓN: BORRAR CUENTA ----------
+            Spacer(Modifier.height(8.dp))
+            TextButton(
+                onClick = { showDeleteDialog = true },
+                colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD32F2F))
+            ) {
+                Text("Borrar cuenta de usuario", fontWeight = FontWeight.SemiBold)
+            }
 
         } else {
             // ---------- Sala de espera ----------
