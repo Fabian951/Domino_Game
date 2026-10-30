@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -44,6 +45,9 @@ import com.example.domino_game.view.components.GridBoardView
 import com.example.domino_game.view.components.ScoreBoardView
 import com.example.domino_game.view.components.TileView
 import com.example.domino_game.viewmodel.GameViewModel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun GameScreen(
@@ -68,6 +72,8 @@ fun GameScreen(
     val isHost = room?.hostId == viewModel.currentUid
 
     var showAbandonDialog by remember { mutableStateOf(false) }
+
+    var isHandExpanded by remember { mutableStateOf(false) }
 
     val winnerPlayer = players.firstOrNull { it.uid == room?.winnerId }
 
@@ -245,67 +251,87 @@ fun GameScreen(
                 )
             }
 
-            // 3. Mano del Jugador
+            // 3. Mano del Jugador (Menú Desplegable Estilizado)
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF16161E), RoundedCornerShape(16.dp))
+                    .padding(12.dp)
             ) {
-                Text(
-                    text = "Tu Mano (${myPlayer?.hand?.size ?: 0} fichas):",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        .clickable { isHandExpanded = !isHandExpanded }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    myPlayer?.hand?.forEach { tile ->
-                        val isPlayable = playableTiles.contains(tile)
-                        TileView(
-                            tile = tile,
-                            isSelected = uiState.selectedTile == tile,
-                            modifier = Modifier.alpha(if (isPlayable) 1f else 0.4f),
-                            onClick = {
-                                if (isMyTurn && !uiState.isRelocatingPortal) viewModel.selectTile(tile)
-                            }
-                        )
-                    }
+                    Text(
+                        text = "Tu Mano (${myPlayer?.hand?.size ?: 0} fichas):",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = if (isHandExpanded) "▼ Ocultar" else "▲ Mostrar Fichas",
+                        color = Color(0xFFFFC107),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                if (isHandExpanded) {
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        myPlayer?.hand?.forEach { tile ->
+                            val isPlayable = playableTiles.contains(tile)
+                            TileView(
+                                tile = tile,
+                                isSelected = uiState.selectedTile == tile,
+                                modifier = Modifier.alpha(if (isPlayable) 1f else 0.4f),
+                                onClick = {
+                                    if (isMyTurn && !uiState.isRelocatingPortal) viewModel.selectTile(tile)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Acciones de Fin de Turno Nativas
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.draw() },
+                    enabled = isMyTurn && pool.isNotEmpty() && !uiState.loading && !uiState.isRelocatingPortal,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Button(
-                        onClick = { viewModel.draw() },
-                        enabled = isMyTurn && pool.isNotEmpty() && !uiState.loading && !uiState.isRelocatingPortal,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Robar (${pool.size})", maxLines = 1, fontSize = 12.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = { viewModel.pass() },
-                        enabled = isMyTurn && !uiState.loading && !uiState.isRelocatingPortal,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Pasar Turno", maxLines = 1, fontSize = 12.sp)
-                    }
+                    Text("Robar (${pool.size})", maxLines = 1, fontSize = 12.sp)
                 }
 
-                if (uiState.loading) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    CircularProgressIndicator()
+                OutlinedButton(
+                    onClick = { viewModel.pass() },
+                    enabled = isMyTurn && !uiState.loading && !uiState.isRelocatingPortal,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Pasar Turno", maxLines = 1, fontSize = 12.sp)
                 }
+            }
+
+            if (uiState.loading) {
+                Spacer(modifier = Modifier.height(2.dp))
+                CircularProgressIndicator()
             }
         }
     }

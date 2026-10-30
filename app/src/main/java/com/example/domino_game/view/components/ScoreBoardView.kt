@@ -34,7 +34,9 @@ fun ScoreBoardView(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF16161E) // Cambio 1: Fondo de la barra superior a negro premium
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
@@ -47,19 +49,19 @@ fun ScoreBoardView(
                     text = "MARCADOR",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary
+                    color = Color.White // Textos del título en blanco
                 )
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .background(Color(0xFF23232E)) // Fondo oscuro para la burbuja del pozo
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = "POZO: $poolCount fichas",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color(0xFFFFC107) // Resaltado dorado para el número de fichas en el pozo
                     )
                 }
             }
@@ -88,11 +90,12 @@ fun PlayerScoreCard(
     isCurrentTurn: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val borderColor = if (isCurrentTurn) MaterialTheme.colorScheme.primary else Color.Transparent
+    // Cambio 2: Borde dorado brillante para el jugador en turno, de lo contrario transparente u oscuro
+    val borderColor = if (isCurrentTurn) Color(0xFFFFC107) else Color(0xFF2B2B36)
     val backgroundColor = if (isCurrentTurn) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        Color(0xFF23232E) // Tono un poco más claro para el jugador activo
     } else {
-        MaterialTheme.colorScheme.surface
+        Color(0xFF0D0D12) // Fondo negro puro para los oponentes inactivos
     }
 
     val playerTag = if (player.isAi) " (Bot)" else ""
@@ -101,7 +104,7 @@ fun PlayerScoreCard(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(backgroundColor)
-            .border(2.dp, borderColor, RoundedCornerShape(8.dp))
+            .border(1.5.dp, borderColor, RoundedCornerShape(8.dp))
             .padding(6.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -110,24 +113,24 @@ fun PlayerScoreCard(
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp,
                 maxLines = 1,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.White // Nombre en blanco
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "${player.score} pts",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary
+                color = if (isCurrentTurn) Color(0xFFFFC107) else Color.White // Resaltado dorado si es su turno
             )
             Text(
                 text = "🏰 ${player.territories} ter.",
                 fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.LightGray // Subtextos legibles en gris claro
             )
             Text(
                 text = "🎴 ${player.handCount} fichas",
                 fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.LightGray // Subtextos legibles en gris claro
             )
         }
     }
