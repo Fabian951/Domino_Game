@@ -16,17 +16,15 @@ class AuthRepository(
     val currentUserUid: String?
         get() = auth.currentUser?.uid
 
-    // CORRECCIÓN: Ahora acepta el cuarto parámetro avatarEmoji
     suspend fun register(name: String, email: String, password: String, avatarEmoji: String) {
         val result = auth.createUserWithEmailAndPassword(email, password).await()
         val uid = result.user!!.uid
 
-        // Guardamos el emoji elegido dentro del documento del usuario en Firestore
         db.collection("users").document(uid).set(
             mapOf(
                 "name" to name,
                 "email" to email,
-                "avatar" to avatarEmoji, // <--- Guardado en base de datos
+                "avatar" to avatarEmoji,
                 "gamesPlayed" to 0,
                 "gamesWon" to 0
             )
@@ -47,7 +45,6 @@ class AuthRepository(
         return doc.getString("name") ?: "Jugador"
     }
 
-    // Función auxiliar opcional por si necesitas recuperar el emoji en el juego más adelante
     suspend fun getUserAvatar(): String {
         val uid = currentUserUid ?: return "🦄"
         val doc = db.collection("users").document(uid).get().await()
@@ -56,7 +53,6 @@ class AuthRepository(
 
     suspend fun loginWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-
         val result = auth.signInWithCredential(credential).await()
         val uid = result.user?.uid ?: return
 
@@ -70,11 +66,25 @@ class AuthRepository(
                 mapOf(
                     "name" to name,
                     "email" to email,
-                    "avatar" to "😎", // <--- Le asignamos un emoji por defecto a los registros de Google
+                    "avatar" to "", // <--- Inicialmente vacío para que la app sepa que debe elegir uno
                     "gamesPlayed" to 0,
                     "gamesWon" to 0
                 )
             ).await()
         }
+    }
+
+    // CONECTADO A FIRESTORE: Actualiza el avatar permanentemente
+    suspend fun updateUserEmoji(uid: String, emoji: String) {
+        if (uid.isNotBlank()) {
+            db.collection("users").document(uid).update("avatar", emoji).await()
+        }
+    }
+
+    // CONECTADO A FIRESTORE: Obtiene el avatar guardado de forma persistente
+    suspend fun getUserEmoji(uid: String): String? {
+        if (uid.isBlank()) return null
+        val doc = db.collection("users").document(uid).get().await()
+        return doc.getString("avatar")
     }
 }

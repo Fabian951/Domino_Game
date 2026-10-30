@@ -35,14 +35,12 @@ class AuthViewModel(
             _uiState.value = AuthUiState(loading = true)
             try {
                 repo.register(name.trim(), email.trim(), password, avatarEmoji)
-                // MODIFICADO: Tras registro tradicional exitoso, va directo al Lobby sin pasar por la pantalla extra
                 _uiState.value = AuthUiState(loggedIn = true, needsAvatarSelection = false)
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(error = e.message)
             }
         }
     }
-
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
@@ -65,20 +63,32 @@ class AuthViewModel(
             _uiState.value = AuthUiState(loading = true)
             try {
                 repo.loginWithGoogle(idToken)
-                // Exclusivo Google: activa la redirección a la pantalla de avatares
-                _uiState.value = AuthUiState(loggedIn = true, needsAvatarSelection = true)
+
+                val uid = repo.currentUserUid ?: ""
+                // Consultamos a Firestore qué avatar tiene este jugador
+                val existingEmoji = repo.getUserEmoji(uid)
+
+                if (!existingEmoji.isNullOrBlank()) {
+                    // Si ya tiene un avatar fijo guardado en Firestore, entra directo al Lobby
+                    _uiState.value = AuthUiState(loggedIn = true, needsAvatarSelection = false)
+                } else {
+                    // Si es usuario nuevo o no tiene avatar elegido, muestra la pantalla intermedia
+                    _uiState.value = AuthUiState(loggedIn = true, needsAvatarSelection = true)
+                }
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(error = e.message)
             }
         }
     }
 
-
     fun updateAvatarEmoji(emoji: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(loading = true)
             try {
-                // Concluimos el flujo intermedio quitando la bandera para dar acceso al Lobby
+                val uid = repo.currentUserUid ?: ""
+                // Guardamos el emoji seleccionado en Firestore para que quede fijo para siempre
+                repo.updateUserEmoji(uid, emoji)
+
                 _uiState.value = _uiState.value.copy(loading = false, needsAvatarSelection = false)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(loading = false, error = e.message)
