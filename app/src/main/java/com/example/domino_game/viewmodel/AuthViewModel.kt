@@ -23,7 +23,6 @@ class AuthViewModel(
     )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    // CORRECCIÓN: Ahora la función acepta el cuarto parámetro: avatarEmoji
     fun register(name: String, email: String, password: String, avatarEmoji: String) {
         if (name.isBlank() || email.isBlank() || password.length < 6) {
             _uiState.value = _uiState.value.copy(
@@ -34,7 +33,6 @@ class AuthViewModel(
         viewModelScope.launch {
             _uiState.value = AuthUiState(loading = true)
             try {
-                // Pasamos el emoji al repositorio para guardarlo en la base de datos junto al perfil
                 repo.register(name.trim(), email.trim(), password, avatarEmoji)
                 _uiState.value = AuthUiState(loggedIn = true)
             } catch (e: Exception) {

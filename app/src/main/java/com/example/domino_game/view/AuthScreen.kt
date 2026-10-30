@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,7 +46,6 @@ fun AuthScreen(
     val listaEmojis = listOf("🦄", "😎", "🦊", "🥷", "🔥", "👑", "🎲", "👻")
     var selectedEmoji by remember { mutableStateOf("🦄") }
 
-    // ID DE CLIENTE WEB VERIFICADO DESDE LA CONSOLA DE FIREBASE
     val webClientId = "423565031620-i82o1nd8hdpb8ltbgibmkdd2fis58rrf.apps.googleusercontent.com"
 
     val gso = remember {
@@ -58,21 +56,20 @@ fun AuthScreen(
     }
     val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
 
-    // Launcher tradicional para procesar el intento de forma segura
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            val idToken = account?.idToken
-            if (idToken != null) {
-                onGoogleLogin(idToken)
-            } else {
-                Toast.makeText(context, "Error: No se recibió token", Toast.LENGTH_SHORT).show()
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                val idToken = account?.idToken
+                if (idToken != null) {
+                    onGoogleLogin(idToken)
+                }
+            } catch (e: ApiException) {
+                Toast.makeText(context, "Error Google: ${e.statusCode}", Toast.LENGTH_SHORT).show()
             }
-        } catch (e: ApiException) {
-            Toast.makeText(context, "Operación cancelada (${e.statusCode})", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -211,30 +208,19 @@ fun AuthScreen(
 
             Button(
                 onClick = {
+                    // Limpiamos la caché de sesión de Google antes de abrir la ventana flotante
                     googleSignInClient.signOut().addOnCompleteListener {
-                        val signInIntent = googleSignInClient.signInIntent
-                        googleSignInLauncher.launch(signInIntent)
+                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
                     }
                 },
                 enabled = !state.loading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFF2F2F2),
+                    containerColor = Color.White,
                     contentColor = Color.Black
-                )
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Continuar con Google",
-                        fontSize = 16.sp
-                    )
-                }
+                Text("Iniciar sesión con Google")
             }
         }
     }

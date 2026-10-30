@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onGoogleLogin = { token -> authViewModel.loginWithGoogle(token) }
                             )
-                        } // <--- ESTA ERA LA LLAVE QUE FALTABA PARA CERRAR EL BLOQUE "auth"
+                        }
 
                         composable("lobby") {
                             val lobbyViewModel: LobbyViewModel = viewModel()
