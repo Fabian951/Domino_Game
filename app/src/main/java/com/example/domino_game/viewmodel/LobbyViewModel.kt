@@ -14,11 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class LobbyUiState(
     val loading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val userName: String = "Cargando...", // <- Agregado para el Perfil Fijo
+    val userAvatar: String = "🎲"        // <- Agregado para el Perfil Fijo
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -45,6 +48,27 @@ class LobbyViewModel(
         .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else roomRepo.observePlayers(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Bloque de inicialización para cargar el nombre y emoji fijo asíncronamente desde Firestore
+    init {
+        loadUserProfile()
+    }
+
+    private fun loadUserProfile() {
+        viewModelScope.launch {
+            try {
+                val name = authRepo.getUserName()
+                val avatar = authRepo.getUserAvatar()
+                _uiState.update {
+                    it.copy(userName = name, userAvatar = avatar)
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(userName = "Jugador", userAvatar = "😎")
+                }
+            }
+        }
+    }
+
     fun createRoom() = launchAction {
         val name = authRepo.getUserName()
         _roomId.value = roomRepo.createRoom(uid, name)
@@ -64,7 +88,7 @@ class LobbyViewModel(
 
     fun joinRoom(code: String) {
         if (code.isBlank()) {
-            _uiState.value = LobbyUiState(error = "Escribe el código de la sala")
+            _uiState.update { it.copy(error = "Escribe el código de la sala") }
             return
         }
         launchAction {
@@ -87,12 +111,12 @@ class LobbyViewModel(
 
     private fun launchAction(block: suspend () -> Unit) {
         viewModelScope.launch {
-            _uiState.value = LobbyUiState(loading = true)
+            _uiState.update { it.copy(loading = true) }
             try {
                 block()
-                _uiState.value = LobbyUiState()
+                _uiState.update { it.copy(loading = false) }
             } catch (e: Exception) {
-                _uiState.value = LobbyUiState(error = e.message)
+                _uiState.update { it.copy(error = e.message, loading = false) }
             }
         }
     }
