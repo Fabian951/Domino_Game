@@ -42,13 +42,16 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
+
                             AuthScreen(
                                 state = authState,
-                                onLogin = authViewModel::login,
-                                onRegister = authViewModel::register,
-                                onGoogleLogin = { token -> authViewModel.loginWithGoogle(token) } // <-- AGREGA ESTA LÍNEA AQUÍ
+                                onLogin = { email, password -> authViewModel.login(email, password) },
+                                onRegister = { name, email, password, emoji ->
+                                    authViewModel.register(name, email, password, emoji)
+                                },
+                                onGoogleLogin = { token -> authViewModel.loginWithGoogle(token) }
                             )
-                        }
+                        } // <--- ESTA ERA LA LLAVE QUE FALTABA PARA CERRAR EL BLOQUE "auth"
 
                         composable("lobby") {
                             val lobbyViewModel: LobbyViewModel = viewModel()

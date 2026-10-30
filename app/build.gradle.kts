@@ -8,8 +8,6 @@ android {
     namespace = "com.example.domino_game"
     compileSdk = 37
 
-
-
     defaultConfig {
         applicationId = "com.example.domino_game"
         minSdk = 24
@@ -39,7 +37,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:35.0.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")        // login
-    implementation("com.google.firebase:firebase-firestore")   // base de datos en tiempo real
+    implementation("com.google.firebase:firebase-firestore")   // base de datos
 
     // Coroutines (para usar .await() con Firebase)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
@@ -54,6 +52,7 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid.auth.samples)
+    implementation("com.google.android.gms:play-services-auth:21.2.0") // Servidor tradicional clásico
     // -------------------------------------------------------------
 
     // Jetpack Compose y Core desde el catálogo libs

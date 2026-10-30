@@ -16,15 +16,17 @@ class AuthRepository(
     val currentUserUid: String?
         get() = auth.currentUser?.uid
 
-    suspend fun register(name: String, email: String, password: String) {
+    // CORRECCIÓN: Ahora acepta el cuarto parámetro avatarEmoji
+    suspend fun register(name: String, email: String, password: String, avatarEmoji: String) {
         val result = auth.createUserWithEmailAndPassword(email, password).await()
         val uid = result.user!!.uid
 
-        // Esto crea la colección "users" automáticamente
+        // Guardamos el emoji elegido dentro del documento del usuario en Firestore
         db.collection("users").document(uid).set(
             mapOf(
                 "name" to name,
                 "email" to email,
+                "avatar" to avatarEmoji, // <--- Guardado en base de datos
                 "gamesPlayed" to 0,
                 "gamesWon" to 0
             )
@@ -45,18 +47,21 @@ class AuthRepository(
         return doc.getString("name") ?: "Jugador"
     }
 
-    // --- FUNCIÓN DE GOOGLE CORREGIDA E INTEGRADA ---
+    // Función auxiliar opcional por si necesitas recuperar el emoji en el juego más adelante
+    suspend fun getUserAvatar(): String {
+        val uid = currentUserUid ?: return "🦄"
+        val doc = db.collection("users").document(uid).get().await()
+        return doc.getString("avatar") ?: "🦄"
+    }
+
     suspend fun loginWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
 
-        // 1. Autenticar en Firebase usando la instancia de la clase
         val result = auth.signInWithCredential(credential).await()
         val uid = result.user?.uid ?: return
 
-        // 2. Verificar si el usuario ya existe en la base de datos
         val userDoc = db.collection("users").document(uid).get().await()
 
-        // 3. Si es la primera vez que entra, creamos su perfil en Firestore
         if (!userDoc.exists()) {
             val name = result.user?.displayName ?: "Jugador de Google"
             val email = result.user?.email ?: ""
@@ -65,6 +70,7 @@ class AuthRepository(
                 mapOf(
                     "name" to name,
                     "email" to email,
+                    "avatar" to "😎", // <--- Le asignamos un emoji por defecto a los registros de Google
                     "gamesPlayed" to 0,
                     "gamesWon" to 0
                 )

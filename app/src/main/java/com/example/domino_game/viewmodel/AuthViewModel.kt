@@ -23,7 +23,8 @@ class AuthViewModel(
     )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun register(name: String, email: String, password: String) {
+    // CORRECCIÓN: Ahora la función acepta el cuarto parámetro: avatarEmoji
+    fun register(name: String, email: String, password: String, avatarEmoji: String) {
         if (name.isBlank() || email.isBlank() || password.length < 6) {
             _uiState.value = _uiState.value.copy(
                 error = "Completa todos los campos (contraseña mínimo 6 caracteres)"
@@ -33,7 +34,8 @@ class AuthViewModel(
         viewModelScope.launch {
             _uiState.value = AuthUiState(loading = true)
             try {
-                repo.register(name.trim(), email.trim(), password)
+                // Pasamos el emoji al repositorio para guardarlo en la base de datos junto al perfil
+                repo.register(name.trim(), email.trim(), password, avatarEmoji)
                 _uiState.value = AuthUiState(loggedIn = true)
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(error = e.message)
@@ -57,7 +59,6 @@ class AuthViewModel(
         }
     }
 
-    // --- NUEVA FUNCIÓN ADAPTADA A TU ARQUITECTURA DE ESTADOS ---
     fun loginWithGoogle(idToken: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState(loading = true)
