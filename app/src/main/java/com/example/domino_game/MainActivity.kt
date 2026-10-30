@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.domino_game.ui.theme.Domino_GameTheme
 import com.example.domino_game.view.AuthScreen
+import com.example.domino_game.view.AvatarScreen
 import com.example.domino_game.view.GameScreen
 import com.example.domino_game.view.LobbyScreen
 import com.example.domino_game.viewmodel.AuthViewModel
@@ -30,14 +31,23 @@ class MainActivity : ComponentActivity() {
                     val authViewModel: AuthViewModel = viewModel()
                     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
 
+                    // Determinamos el destino inicial basándonos en si requiere avatar o va al lobby directo
+                    val startDestination = if (authState.loggedIn) {
+                        if (authState.needsAvatarSelection) "avatar_selection" else "lobby"
+                    } else {
+                        "auth"
+                    }
+
                     NavHost(
                         navController = navController,
-                        startDestination = if (authState.loggedIn) "lobby" else "auth"
+                        startDestination = startDestination
                     ) {
                         composable("auth") {
-                            LaunchedEffect(authState.loggedIn) {
+                            // Escucha limpia que evalúa la bandera para decidir el destino
+                            LaunchedEffect(authState.loggedIn, authState.needsAvatarSelection) {
                                 if (authState.loggedIn) {
-                                    navController.navigate("lobby") {
+                                    val destination = if (authState.needsAvatarSelection) "avatar_selection" else "lobby"
+                                    navController.navigate(destination) {
                                         popUpTo("auth") { inclusive = true }
                                     }
                                 }
@@ -50,6 +60,18 @@ class MainActivity : ComponentActivity() {
                                     authViewModel.register(name, email, password, emoji)
                                 },
                                 onGoogleLogin = { token -> authViewModel.loginWithGoogle(token) }
+                            )
+                        }
+
+                        // NUEVA RUTA INTEGRADA: Pantalla intermedia de selección de Avatar
+                        composable("avatar_selection") {
+                            AvatarScreen(
+                                onAvatarConfirmed = { selectedEmoji ->
+                                    authViewModel.updateAvatarEmoji(selectedEmoji)
+                                    navController.navigate("lobby") {
+                                        popUpTo("avatar_selection") { inclusive = true }
+                                    }
+                                }
                             )
                         }
 

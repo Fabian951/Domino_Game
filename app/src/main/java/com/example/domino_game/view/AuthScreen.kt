@@ -43,7 +43,8 @@ fun AuthScreen(
     val context = LocalContext.current
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-    val listaEmojis = listOf("🦄", "😎", "🦊", "🥷", "🔥", "👑", "🎲", "👻")
+    val listaEmojis = com.example.domino_game.model.AvatarAssets.listaEmojis
+
     var selectedEmoji by remember { mutableStateOf("🦄") }
 
     val webClientId = "423565031620-i82o1nd8hdpb8ltbgibmkdd2fis58rrf.apps.googleusercontent.com"

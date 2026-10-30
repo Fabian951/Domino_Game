@@ -11,7 +11,8 @@ import kotlinx.coroutines.launch
 data class AuthUiState(
     val loading: Boolean = false,
     val error: String? = null,
-    val loggedIn: Boolean = false
+    val loggedIn: Boolean = false,
+    val needsAvatarSelection: Boolean = false
 )
 
 class AuthViewModel(
@@ -34,12 +35,14 @@ class AuthViewModel(
             _uiState.value = AuthUiState(loading = true)
             try {
                 repo.register(name.trim(), email.trim(), password, avatarEmoji)
-                _uiState.value = AuthUiState(loggedIn = true)
+                // MODIFICADO: Tras registro tradicional exitoso, va directo al Lobby sin pasar por la pantalla extra
+                _uiState.value = AuthUiState(loggedIn = true, needsAvatarSelection = false)
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(error = e.message)
             }
         }
     }
+
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
@@ -50,7 +53,7 @@ class AuthViewModel(
             _uiState.value = AuthUiState(loading = true)
             try {
                 repo.login(email.trim(), password)
-                _uiState.value = AuthUiState(loggedIn = true)
+                _uiState.value = AuthUiState(loggedIn = true, needsAvatarSelection = false)
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(error = e.message)
             }
@@ -62,9 +65,23 @@ class AuthViewModel(
             _uiState.value = AuthUiState(loading = true)
             try {
                 repo.loginWithGoogle(idToken)
-                _uiState.value = AuthUiState(loggedIn = true)
+                // Exclusivo Google: activa la redirección a la pantalla de avatares
+                _uiState.value = AuthUiState(loggedIn = true, needsAvatarSelection = true)
             } catch (e: Exception) {
                 _uiState.value = AuthUiState(error = e.message)
+            }
+        }
+    }
+
+
+    fun updateAvatarEmoji(emoji: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(loading = true)
+            try {
+                // Concluimos el flujo intermedio quitando la bandera para dar acceso al Lobby
+                _uiState.value = _uiState.value.copy(loading = false, needsAvatarSelection = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(loading = false, error = e.message)
             }
         }
     }
