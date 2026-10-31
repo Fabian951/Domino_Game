@@ -2,7 +2,6 @@ package com.example.domino_game.model
 
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Transaction
 import com.google.firebase.firestore.firestore
@@ -17,10 +16,10 @@ class GameRepository(
     private val rooms get() = db.collection("rooms")
 
     fun observeBoard(roomId: String): Flow<List<Cell>> = callbackFlow {
-        val reg = rooms.document(roomId).collection("board")
+        val reg = rooms.document(roomId).collection("board").document("state")
             .addSnapshotListener { snap, err ->
                 if (err != null) { close(err); return@addSnapshotListener }
-                val cells = snap?.toObjects(Cell::class.java) ?: emptyList()
+                val cells = snap?.toObject(BoardState::class.java)?.cells ?: emptyList()
                 trySend(cells.sortedWith(compareBy({ it.row }, { it.col })))
             }
         awaitClose { reg.remove() }
@@ -73,7 +72,7 @@ class GameRepository(
     ) {
         val roomRef = rooms.document(roomId)
         val playerRef = roomRef.collection("players").document(uid)
-        val boardColl = roomRef.collection("board")
+        val boardStateRef = roomRef.collection("board").document("state")
         val poolRef = roomRef.collection("pool").document("state")
         val playersColl = roomRef.collection("players")
 
@@ -93,14 +92,8 @@ class GameRepository(
 
             val allPlayerSnaps = turnOrder.map { transaction.get(playersColl.document(it)) }
             
-            val boardSnaps = mutableListOf<DocumentSnapshot>()
-            for (r in 0..7) {
-                for (c in 0..7) {
-                    boardSnaps.add(transaction.get(boardColl.document("${r}_${c}")))
-                }
-            }
-
-            val boardList = boardSnaps.mapNotNull { it.toObject(Cell::class.java) }
+            val boardSnap = transaction.get(boardStateRef)
+            val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
             val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
 
             for (r in 0..7) {
@@ -163,8 +156,7 @@ class GameRepository(
                 maxRounds = maxRounds
             )
 
-            transaction.set(boardColl.document(newCell1.id), newCell1)
-            transaction.set(boardColl.document(newCell2.id), newCell2)
+            transaction.set(boardStateRef, BoardState(updatedBoardMap.values.toList()))
 
             transaction.update(playerRef, mapOf(
                 "hand" to currentHand,
@@ -197,7 +189,7 @@ class GameRepository(
         val roomRef = rooms.document(roomId)
         val playerRef = roomRef.collection("players").document(uid)
         val poolRef = roomRef.collection("pool").document("state")
-        val boardColl = roomRef.collection("board")
+        val boardStateRef = roomRef.collection("board").document("state")
 
         db.runTransaction { transaction ->
             val roomSnap = transaction.get(roomRef)
@@ -207,10 +199,9 @@ class GameRepository(
             val poolSnap = transaction.get(poolRef)
             val playerSnap = transaction.get(playerRef)
             
-            val boardSnaps = mutableListOf<DocumentSnapshot>()
-            for (r in 0..7) for (c in 0..7) boardSnaps.add(transaction.get(boardColl.document("${r}_${c}")))
-
-            val boardMap = boardSnaps.mapNotNull { it.toObject(Cell::class.java) }.associateBy { Pair(it.row, it.col) }.toMutableMap()
+            val boardSnap = transaction.get(boardStateRef)
+            val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
+            val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
             for (r in 0..7) {
                 for (c in 0..7) {
                     if (!boardMap.containsKey(Pair(r, c))) {
@@ -245,7 +236,7 @@ class GameRepository(
         val roomRef = rooms.document(roomId)
         val playerRef = roomRef.collection("players").document(uid)
         val poolRef = roomRef.collection("pool").document("state")
-        val boardColl = roomRef.collection("board")
+        val boardStateRef = roomRef.collection("board").document("state")
         val playersColl = roomRef.collection("players")
 
         db.runTransaction { transaction ->
@@ -259,10 +250,9 @@ class GameRepository(
             @Suppress("UNCHECKED_CAST")
             val turnOrder = (roomSnap.get("turnOrder") as? List<String> ?: emptyList())
             val allPlayerSnaps = turnOrder.map { transaction.get(playersColl.document(it)) }
-            val boardSnaps = mutableListOf<DocumentSnapshot>()
-            for (r in 0..7) for (c in 0..7) boardSnaps.add(transaction.get(boardColl.document("${r}_${c}")))
-
-            val boardMap = boardSnaps.mapNotNull { it.toObject(Cell::class.java) }.associateBy { Pair(it.row, it.col) }.toMutableMap()
+            val boardSnap = transaction.get(boardStateRef)
+            val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
+            val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
             for (r in 0..7) {
                 for (c in 0..7) {
                     if (!boardMap.containsKey(Pair(r, c))) {
@@ -306,7 +296,7 @@ class GameRepository(
 
     suspend fun resolvePortal(roomId: String, uid: String, newMove: Move?) {
         val roomRef = rooms.document(roomId)
-        val boardColl = roomRef.collection("board")
+        val boardStateRef = roomRef.collection("board").document("state")
         val playersColl = roomRef.collection("players")
         val playerRef = playersColl.document(uid)
         val poolRef = roomRef.collection("pool").document("state")
@@ -336,10 +326,9 @@ class GameRepository(
                 val poolTiles = poolSnap.get("tiles") as? List<Any> ?: emptyList()
                 
                 val allPlayerSnaps = turnOrder.map { transaction.get(playersColl.document(it)) }
-                val boardSnaps = mutableListOf<DocumentSnapshot>()
-                for (r in 0..7) for (c in 0..7) boardSnaps.add(transaction.get(boardColl.document("${r}_${c}")))
-                
-                val boardMap = boardSnaps.mapNotNull { it.toObject(Cell::class.java) }.associateBy { Pair(it.row, it.col) }.toMutableMap()
+                val boardSnap = transaction.get(boardStateRef)
+                val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
+                val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
                 for (r in 0..7) {
                     for (c in 0..7) {
                         if (!boardMap.containsKey(Pair(r, c))) {
@@ -372,10 +361,7 @@ class GameRepository(
                 val finalScore = (baseScore + newPts).coerceAtLeast(0)
                 val finalTerritories = newBoardMap.values.count { it.ownerId == uid }
 
-                transaction.set(boardColl.document("${cell1.row}_${cell1.col}"), newBoardMap[Pair(cell1.row, cell1.col)]!!)
-                transaction.set(boardColl.document("${cell2.row}_${cell2.col}"), newBoardMap[Pair(cell2.row, cell2.col)]!!)
-                transaction.set(boardColl.document("${adjustedNewMove.row}_${adjustedNewMove.col}"), newBoardMap[Pair(adjustedNewMove.row, adjustedNewMove.col)]!!)
-                transaction.set(boardColl.document("${adjustedNewMove.row2}_${adjustedNewMove.col2}"), newBoardMap[Pair(adjustedNewMove.row2, adjustedNewMove.col2)]!!)
+                transaction.set(boardStateRef, BoardState(newBoardMap.values.toList()))
 
                 transaction.update(playerRef, mapOf(
                     "score" to finalScore,
@@ -441,7 +427,7 @@ class GameRepository(
     suspend fun restart(roomId: String) {
         val roomRef = rooms.document(roomId)
         val playersColl = roomRef.collection("players")
-        val boardColl = roomRef.collection("board")
+        val boardStateRef = roomRef.collection("board").document("state")
 
         val playersSnaps = playersColl.get().await()
         val playerDocs = playersSnaps.documents
@@ -472,7 +458,7 @@ class GameRepository(
                 ))
             }
             batch.set(roomRef.collection("pool").document("state"), mapOf("tiles" to tiles))
-            board.forEach { cell -> batch.set(boardColl.document(cell.id), cell) }
+            batch.set(boardStateRef, BoardState(board))
             batch.update(roomRef, mapOf(
                 "status" to "PLAYING",
                 "currentTurnUid" to firstTurn,
@@ -511,8 +497,9 @@ class GameRepository(
             val rawHand = botSnap.get("hand") as? List<Map<String, Long>> ?: emptyList()
             val botHand = rawHand.map { Tile(left = (it["left"] ?: 0L).toInt(), right = (it["right"] ?: 0L).toInt()) }
 
-            val boardSnaps = roomRef.collection("board").get().await()
-            val boardMap = boardSnaps.toObjects(Cell::class.java).associateBy { Pair(it.row, it.col) }.toMutableMap()
+            val boardSnap = roomRef.collection("board").document("state").get().await()
+            val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
+            val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
             for (r in 0..7) {
                 for (c in 0..7) {
                     if (!boardMap.containsKey(Pair(r, c))) {

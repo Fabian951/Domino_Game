@@ -12,3 +12,4 @@ data class Cell(
     val pairCol: Int? = null,
     val placedBy: String? = null
 )
+data class BoardState(val cells: List<Cell> = emptyList())

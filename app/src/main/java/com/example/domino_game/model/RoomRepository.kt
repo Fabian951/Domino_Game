@@ -145,10 +145,8 @@ class RoomRepository(
             // Pozo
             batch.set(roomRef.collection("pool").document("state"), mapOf("tiles" to tiles))
 
-            // Tablero 8x8
-            board.forEach { cell ->
-                batch.set(roomRef.collection("board").document(cell.id), cell)
-            }
+            // Tablero completo en un solo documento
+            batch.set(roomRef.collection("board").document("state"), BoardState(board))
 
             // Activar partida
             batch.update(roomRef, mapOf(
