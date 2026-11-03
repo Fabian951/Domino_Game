@@ -59,7 +59,8 @@ class MainActivity : ComponentActivity() {
                                 onRegister = { name, email, password, emoji ->
                                     authViewModel.register(name, email, password, emoji)
                                 },
-                                onGoogleLogin = { token -> authViewModel.loginWithGoogle(token) }
+                                onGoogleLogin = { token -> authViewModel.loginWithGoogle(token) },
+                                onGoogleError = { errorMsg -> authViewModel.setGoogleError(errorMsg) }
                             )
                         }
 

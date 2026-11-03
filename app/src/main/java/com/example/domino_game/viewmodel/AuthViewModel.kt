@@ -121,4 +121,8 @@ class AuthViewModel(
         repo.logout()
         _uiState.value = AuthUiState()
     }
+
+    fun setGoogleError(errorMsg: String) {
+        _uiState.value = _uiState.value.copy(loading = false, error = errorMsg)
+    }
 }

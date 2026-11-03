@@ -34,7 +34,8 @@ fun AuthScreen(
     state: AuthUiState,
     onLogin: (email: String, password: String) -> Unit,
     onRegister: (name: String, email: String, password: String, avatarEmoji: String) -> Unit,
-    onGoogleLogin: (idToken: String) -> Unit
+    onGoogleLogin: (idToken: String) -> Unit,
+    onGoogleError: ((String) -> Unit)? = null
 ) {
     var isRegisterMode by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
@@ -64,17 +65,29 @@ fun AuthScreen(
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val idToken = account?.idToken
-                if (idToken != null) {
-                    onGoogleLogin(idToken)
-                }
-            } catch (e: ApiException) {
-                Toast.makeText(context, "Error Google: ${e.statusCode}", Toast.LENGTH_SHORT).show()
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account?.idToken
+            if (idToken != null) {
+                onGoogleLogin(idToken)
+            } else {
+                val msg = "No se pudo obtener el ID Token de Google. Verifica la huella SHA-1 en Firebase."
+                onGoogleError?.invoke(msg)
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
             }
+        } catch (e: ApiException) {
+            val mensajeError = when (e.statusCode) {
+                10 -> "Error 10 (DEVELOPER_ERROR): Registrar la huella SHA-1 en Firebase Console y activar el proveedor Google."
+                12500 -> "Error 12500 (SIGN_IN_FAILED): Falló el inicio de sesión con Google."
+                7 -> "Error 7 (NETWORK_ERROR): Comprueba la conexión a internet."
+                12501 -> "Inicio de sesión cancelado por el usuario."
+                else -> "Error de Google (${e.statusCode}): ${e.message ?: "Fallo al iniciar sesión"}"
+            }
+            if (e.statusCode != 12501) {
+                onGoogleError?.invoke(mensajeError)
+            }
+            Toast.makeText(context, mensajeError, Toast.LENGTH_LONG).show()
         }
     }
 

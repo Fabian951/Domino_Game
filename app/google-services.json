@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "423565031620-sg1eb22j8jbln7tjpibd41ckkqg5gp1u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.domino_game",
+            "certificate_hash": "5f11ef7f46db76e14ee649cf450bf79a2f171f0a"
+          }
+        },
+        {
           "client_id": "423565031620-i82o1nd8hdpb8ltbgibmkdd2fis58rrf.apps.googleusercontent.com",
           "client_type": 3
         }
