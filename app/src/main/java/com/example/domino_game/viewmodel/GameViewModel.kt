@@ -95,24 +95,38 @@ class GameViewModel(
         }
     }
 
+    private fun getEffectiveBoardMap(): Map<Pair<Int, Int>, Cell> {
+        val boardMap = board.value.associateBy { Pair(it.row, it.col) }.toMutableMap()
+        if (_uiState.value.isRelocatingPortal) {
+            val currentCells = boardMap.values.filter { it.placedBy == currentUid && it.value != null }
+            val portalCell1 = currentCells.firstOrNull { cell ->
+                cell.type.uppercase() == "PORTAL" ||
+                        boardMap[Pair(cell.pairRow ?: -1, cell.pairCol ?: -1)]?.type?.uppercase() == "PORTAL"
+            } ?: currentCells.lastOrNull()
+
+            if (portalCell1 != null) {
+                val portalCell2 = boardMap[Pair(portalCell1.pairRow ?: -1, portalCell1.pairCol ?: -1)]
+                boardMap[Pair(portalCell1.row, portalCell1.col)] = portalCell1.copy(value = null, ownerId = null, conquestCount = maxOf(0, portalCell1.conquestCount - 1))
+                if (portalCell2 != null) {
+                    boardMap[Pair(portalCell2.row, portalCell2.col)] = portalCell2.copy(value = null, ownerId = null, conquestCount = maxOf(0, portalCell2.conquestCount - 1))
+                }
+            }
+        }
+        return boardMap
+    }
+
     // ---------- ACCIONES DEL JUGADOR ----------
     fun selectTile(tile: Tile) {
         if (_uiState.value.selectedTile == tile) {
             _uiState.value = _uiState.value.copy(selectedTile = null, validMovesForSelectedTile = emptyList(), previewMove = null)
         } else {
-            val boardMap = board.value.associateBy { Pair(it.row, it.col) }
+            val boardMap = getEffectiveBoardMap()
             val validMoves = MoveValidator.getValidMoves(boardMap, tile)
             
-            // Si está reubicando un portal, simular tablero liberado temporalmente
-            val movesToUse = if (_uiState.value.isRelocatingPortal) {
-                // Simplificación UI: solo mostramos todos los movimientos regulares, el repo hará la validación estricta
-                validMoves 
-            } else validMoves
-            
-            val errMessage = if (movesToUse.isEmpty()) "Esta ficha no tiene movimientos válidos" else null
+            val errMessage = if (validMoves.isEmpty()) "Esta ficha no tiene movimientos válidos" else null
             _uiState.value = _uiState.value.copy(
                 selectedTile = tile,
-                validMovesForSelectedTile = movesToUse,
+                validMovesForSelectedTile = validMoves,
                 previewMove = null,
                 error = errMessage
             )
@@ -143,11 +157,11 @@ class GameViewModel(
     fun onCellTapped(row: Int, col: Int) {
         val tile = _uiState.value.selectedTile
         if (tile == null) {
-            _uiState.value = _uiState.value.copy(error = "Selecciona una ficha de tu mano primero")
+            _uiState.value = _uiState.value.copy(error = "Selecciona una ficha primero")
             return
         }
 
-        val boardMap = board.value.associateBy { Pair(it.row, it.col) }
+        val boardMap = getEffectiveBoardMap()
         val placements = MoveValidator.getValidPlacementsAt(boardMap, tile, row, col)
 
         if (placements.isEmpty()) {
@@ -257,15 +271,36 @@ class GameViewModel(
 
     fun startPortalRelocation() {
         val currentRoomId = _roomId.value ?: return
-        val boardMap = board.value.associateBy { Pair(it.row, it.col) }
-        val currentCells = boardMap.values.filter { it.placedBy == currentUid && it.value != null }
+        val rawBoardMap = board.value.associateBy { Pair(it.row, it.col) }
+        val currentCells = rawBoardMap.values.filter { it.placedBy == currentUid && it.value != null }
         
-        if (currentCells.isNotEmpty()) {
-            val lastTilePlaced = Tile(currentCells.first().value ?: 0, currentCells.last().value ?: 0)
+        val portalCell1 = currentCells.firstOrNull { cell ->
+            cell.type.uppercase() == "PORTAL" ||
+                    rawBoardMap[Pair(cell.pairRow ?: -1, cell.pairCol ?: -1)]?.type?.uppercase() == "PORTAL"
+        } ?: currentCells.lastOrNull()
+
+        if (portalCell1 != null) {
+            val portalCell2 = rawBoardMap[Pair(portalCell1.pairRow ?: -1, portalCell1.pairCol ?: -1)]
+            val actualPortalTile = if (portalCell2 != null) {
+                Tile(portalCell1.value ?: 0, portalCell2.value ?: 0)
+            } else {
+                Tile(portalCell1.value ?: 0, portalCell1.value ?: 0)
+            }
+
+            // Liberar temporalmente las casillas del portal para calcular movimientos válidos correctamente
+            val tempBoardMap = rawBoardMap.toMutableMap()
+            tempBoardMap[Pair(portalCell1.row, portalCell1.col)] = portalCell1.copy(value = null, ownerId = null, conquestCount = 0)
+            if (portalCell2 != null) {
+                tempBoardMap[Pair(portalCell2.row, portalCell2.col)] = portalCell2.copy(value = null, ownerId = null, conquestCount = 0)
+            }
+
+            val validMoves = MoveValidator.getValidMoves(tempBoardMap, actualPortalTile)
+
             _uiState.value = GameUiState(
                 isRelocatingPortal = true,
-                selectedTile = lastTilePlaced,
-                error = "Selecciona dónde reubicar tu ficha."
+                selectedTile = actualPortalTile,
+                validMovesForSelectedTile = validMoves,
+                error = if (validMoves.isEmpty()) "No hay casillas válidas para reubicar la ficha" else "Selecciona la nueva ubicación para tu ficha."
             )
         } else {
             resolvePortalStay()
