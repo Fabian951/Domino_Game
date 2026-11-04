@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -164,16 +163,28 @@ fun GameScreen(
                 poolCount = pool.size
             )
 
-            // Indicador de Turno
+            // Indicador de Turno con Contador Regresivo de 1 Minuto (60s)
             val currentTurnPlayerName = players.firstOrNull { it.uid == currentTurnUid }?.name ?: "..."
+            val timerText = "⏱️ ${uiState.turnTimeLeft}s"
+
             Text(
-                text = if (uiState.isRelocatingPortal) "🌀 SELECCIONA NUEVA UBICACIÓN" else if (isMyTurn) "🎯 ¡ES TU TURNO!" else "⏳ Turno de: $currentTurnPlayerName",
+                text = if (uiState.isRelocatingPortal) {
+                    "🌀 SELECCIONA NUEVA UBICACIÓN ($timerText)"
+                } else if (isMyTurn) {
+                    "🎯 ¡ES TU TURNO! ($timerText)"
+                } else {
+                    "⏳ Turno de: $currentTurnPlayerName ($timerText)"
+                },
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
-                color = if (isMyTurn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                color = if (isMyTurn) {
+                    if (uiState.turnTimeLeft <= 10) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.secondary
+                }
             )
 
-            // 2. Tablero 8x8 de Conquista
+            // 2. Tablero de Conquista
             GridBoardView(
                 boardCells = boardCells,
                 players = players,
@@ -186,18 +197,6 @@ fun GameScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
-
-            // Ultimo Mensaje de la Sala
-            if (!room?.lastMessage.isNullOrEmpty()) {
-                Text(
-                    text = "📢 ${room?.lastMessage}",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.secondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
 
             // Controles de Rotacion e Informacion de la Ficha Seleccionada
             Row(

@@ -96,8 +96,8 @@ class GameRepository(
             val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
             val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
 
-            for (r in 0..7) {
-                for (c in 0..7) {
+            for (r in 0..9) {
+                for (c in 0..9) {
                     if (!boardMap.containsKey(Pair(r, c))) {
                         boardMap[Pair(r, c)] = Cell(id = "${r}_${c}", row = r, col = c)
                     }
@@ -202,8 +202,8 @@ class GameRepository(
             val boardSnap = transaction.get(boardStateRef)
             val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
             val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
-            for (r in 0..7) {
-                for (c in 0..7) {
+            for (r in 0..9) {
+                for (c in 0..9) {
                     if (!boardMap.containsKey(Pair(r, c))) {
                         boardMap[Pair(r, c)] = Cell(id = "${r}_${c}", row = r, col = c)
                     }
@@ -253,8 +253,8 @@ class GameRepository(
             val boardSnap = transaction.get(boardStateRef)
             val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
             val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
-            for (r in 0..7) {
-                for (c in 0..7) {
+            for (r in 0..9) {
+                for (c in 0..9) {
                     if (!boardMap.containsKey(Pair(r, c))) {
                         boardMap[Pair(r, c)] = Cell(id = "${r}_${c}", row = r, col = c)
                     }
@@ -329,8 +329,8 @@ class GameRepository(
                 val boardSnap = transaction.get(boardStateRef)
                 val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
                 val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
-                for (r in 0..7) {
-                    for (c in 0..7) {
+                for (r in 0..9) {
+                    for (c in 0..9) {
                         if (!boardMap.containsKey(Pair(r, c))) {
                             boardMap[Pair(r, c)] = Cell(id = "${r}_${c}", row = r, col = c)
                         }
@@ -500,8 +500,8 @@ class GameRepository(
             val boardSnap = roomRef.collection("board").document("state").get().await()
             val boardList = boardSnap.toObject(BoardState::class.java)?.cells ?: emptyList()
             val boardMap = boardList.associateBy { Pair(it.row, it.col) }.toMutableMap()
-            for (r in 0..7) {
-                for (c in 0..7) {
+            for (r in 0..9) {
+                for (c in 0..9) {
                     if (!boardMap.containsKey(Pair(r, c))) {
                         boardMap[Pair(r, c)] = Cell(id = "${r}_${c}", row = r, col = c)
                     }

@@ -34,7 +34,8 @@ data class GameUiState(
     val placementIndex: Int = 0,
     val isRelocatingPortal: Boolean = false,
     val loading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val turnTimeLeft: Int = 60
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -79,6 +80,7 @@ class GameViewModel(
         _roomId.value = id
         observeBotTurnCombined()
         observePlayableTiles()
+        observeTurnTimer()
     }
 
     private fun observePlayableTiles() {
@@ -275,6 +277,43 @@ class GameViewModel(
         viewModelScope.launch {
             gameRepo.resolvePortal(currentRoomId, currentUid, null)
             _uiState.value = GameUiState()
+        }
+    }
+
+    private var turnTimerJob: Job? = null
+
+    // Temporizador de 1 minuto (60 segundos) por turno con expulsión por inactividad
+    private fun observeTurnTimer() {
+        viewModelScope.launch {
+            combine(room, players) { r, p -> Pair(r, p) }.collect { (currentRoom, activePlayers) ->
+                turnTimerJob?.cancel()
+                if (currentRoom == null || currentRoom.status != "PLAYING") return@collect
+
+                val turnUid = currentRoom.currentTurnUid
+                if (turnUid.isBlank()) return@collect
+
+                val isMyTurn = turnUid == currentUid
+                val isHost = currentRoom.hostId == currentUid
+
+                turnTimerJob = viewModelScope.launch {
+                    for (seconds in 60 downTo 1) {
+                        _uiState.value = _uiState.value.copy(turnTimeLeft = seconds)
+                        delay(1000)
+                    }
+                    _uiState.value = _uiState.value.copy(turnTimeLeft = 0)
+
+                    // Si se agota 1 minuto (60 segundos) sin mover:
+                    if (isMyTurn) {
+                        abandon { }
+                    } else if (isHost && !turnUid.startsWith("bot_")) {
+                        try {
+                            gameRepo.abandon(currentRoom.id, turnUid)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
         }
     }
 
